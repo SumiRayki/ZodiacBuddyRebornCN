@@ -5,8 +5,13 @@ New-Item -ItemType Directory -Force -Path $root | Out-Null
 
 $versionFile = Join-Path $root "version"
 Invoke-WebRequest -Uri $pin.distributionVersion -OutFile $versionFile
-$encoded = [regex]::Replace((Get-Content -Raw -Path $versionFile), '[^A-Za-z0-9+/=]', '')
-$version = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) | ConvertFrom-Json
+$raw = (Get-Content -Raw -Path $versionFile).Trim().TrimStart([char]0xFEFF)
+if ($raw.StartsWith("{")) {
+    $version = $raw | ConvertFrom-Json
+} else {
+    $encoded = [regex]::Replace($raw, '[^A-Za-z0-9+/=]', '')
+    $version = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded)) | ConvertFrom-Json
+}
 
 if ($version.AssemblyVersion -ne $pin.assemblyVersion) {
     throw "Dalamud $($version.AssemblyVersion) does not match pinned $($pin.assemblyVersion)."
