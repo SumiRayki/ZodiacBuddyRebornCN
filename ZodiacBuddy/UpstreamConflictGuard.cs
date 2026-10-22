@@ -1,20 +1,19 @@
 using System.Linq;
-using System.Reflection;
 
 namespace ZodiacBuddy;
 
 /// <summary>
-/// Detects the upstream ZodiacBuddyReborn assembly. The CN fork keeps the same chat
-/// commands and does not provide a safe side-by-side mode.
+/// Detects whether the upstream ZodiacBuddy Reborn plugin is loaded right now.
 /// </summary>
 internal static class UpstreamConflictGuard
 {
-    internal const string UpstreamAssemblyName = "ZodiacBuddyReborn";
-
     internal static bool IsLoaded()
-        => AppDomainAssemblies().Any(assembly =>
-            string.Equals(assembly.GetName().Name, UpstreamAssemblyName, System.StringComparison.OrdinalIgnoreCase));
+    {
+        var plugins = Service.Interface.InstalledPlugins;
+        if (plugins == null)
+            return false;
 
-    private static Assembly[] AppDomainAssemblies()
-        => System.AppDomain.CurrentDomain.GetAssemblies();
+        return UpstreamPluginPresence.IsUpstreamActive(
+            plugins.Select(plugin => new PluginLoadState(plugin.InternalName, plugin.IsLoaded)));
+    }
 }

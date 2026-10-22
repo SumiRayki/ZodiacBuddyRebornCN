@@ -39,6 +39,7 @@ public sealed class ZodiacBuddyPlugin : IDalamudPlugin {
     private readonly AnimusAutomationFacade automation;
     private readonly DateTime loadedAtUtc = DateTime.UtcNow;
     private bool sharedCommandsRegistered;
+    private bool sharedCommandRegistrationFailed;
 #if DEBUG
     private readonly FateDebugWindow fateDebugWindow;
     private readonly FateGrinderWindow fateGrinderWindow;
@@ -168,46 +169,68 @@ public sealed class ZodiacBuddyPlugin : IDalamudPlugin {
             return;
         }
 
-        if (this.sharedCommandsRegistered || DateTime.UtcNow - this.loadedAtUtc < SharedCommandDelay)
+        if (Service.UpstreamConflict)
+        {
+            Service.UpstreamConflict = false;
+            this.sharedCommandRegistrationFailed = false;
+            this.PrintMessage("原版 ZodiacBuddy Reborn 已关闭，文书和理符已恢复。");
+        }
+
+        if (this.sharedCommandsRegistered || this.sharedCommandRegistrationFailed || DateTime.UtcNow - this.loadedAtUtc < SharedCommandDelay)
             return;
 
         try
         {
-            this.RegisterSharedCommands();
+            if (!this.TryRegisterSharedCommands())
+                this.NoteSharedCommandsUnavailable();
         }
         catch (Exception ex)
         {
-            Service.UpstreamConflict = true;
             this.UnregisterSharedCommands();
-            Service.PluginLog.Error(ex, "[ZodiacBuddyRebornCN] Shared commands are already owned. The upstream plugin and this CN adaptation cannot run together.");
-            PrintError("共用命令 /pzodiac 或 /ztarget 已被占用。请只启用原版或国服适配版其中一个。本插件已停止文书自动化。");
+            Service.PluginLog.Error(ex, "[ZodiacBuddyRebornCN] Shared commands could not be registered.");
+            this.NoteSharedCommandsUnavailable();
         }
     }
 
-    private void RegisterSharedCommands()
+    private void NoteSharedCommandsUnavailable()
+    {
+        this.sharedCommandRegistrationFailed = true;
+        if (!UpstreamConflictGuard.IsLoaded())
+        {
+            Service.PluginLog.Warning("[ZodiacBuddyRebornCN] /pzodiac or /ztarget is already registered. Book automation continues; use /pzodiac-cn and /ztarget-cn.");
+            return;
+        }
+
+        Service.UpstreamConflict = true;
+        this.UnregisterSharedCommands();
+        PrintError("共用命令 /pzodiac 或 /ztarget 已被占用。请只启用原版或国服适配版其中一个。本插件已停止文书自动化。");
+    }
+
+    private bool TryRegisterSharedCommands()
     {
         if (this.sharedCommandsRegistered || Service.UpstreamConflict)
-            return;
+            return false;
 
-        Service.CommandManager.AddHandler(Command, new CommandInfo(this.OnCommand) {
+        if (!Service.CommandManager.AddHandler(Command, new CommandInfo(this.OnCommand) {
             HelpMessage = "Open settings for the unofficial CN adaptation. Do not enable the upstream plugin at the same time.",
             ShowInHelp = true,
-        });
-        try
+        }))
         {
-            Service.CommandManager.AddHandler(TargetWindowCommand, new CommandInfo(this.OnTargetWindowCommand)
-            {
-                HelpMessage = "Open the CN adaptation target window. Do not enable the upstream plugin at the same time.",
-                ShowInHelp = true,
-            });
+            return false;
         }
-        catch
+
+        if (!Service.CommandManager.AddHandler(TargetWindowCommand, new CommandInfo(this.OnTargetWindowCommand)
+        {
+            HelpMessage = "Open the CN adaptation target window. Do not enable the upstream plugin at the same time.",
+            ShowInHelp = true,
+        }))
         {
             Service.CommandManager.RemoveHandler(Command);
-            throw;
+            return false;
         }
 
         this.sharedCommandsRegistered = true;
+        return true;
     }
 
     private void UnregisterSharedCommands()

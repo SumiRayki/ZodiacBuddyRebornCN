@@ -16,6 +16,7 @@
   <ItemGroup>
     <Compile Include="..\ZodiacBuddy\Stages\Animus\Leves\LeveIssuerSelection.cs" Link="LeveIssuerSelection.cs" />
     <Compile Include="..\ZodiacBuddy\Systems\ClientActorNames.cs" Link="ClientActorNames.cs" />
+    <Compile Include="..\ZodiacBuddy\UpstreamPluginPresence.cs" Link="UpstreamPluginPresence.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(DALAMUD_HOME)' != '' and '$(FFXIV_SQPACK)' != ''">

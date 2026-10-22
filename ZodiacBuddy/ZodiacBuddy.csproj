@@ -10,8 +10,8 @@
     <Tags>relic;zodiac;animus</Tags>
     <CategoryTags>Utility</CategoryTags>
     <AcceptsFeedback>false</AcceptsFeedback>
-    <Changelog>1.0.0.0 测试版。非官方国服适配，上游为 FFXIV-CombatReborn/ZodiacBuddyReborn 7.5.6.1（4913f31）。理符发行人改为数据 ID，接取菜单使用客户端分类名。尚未在国服实机确认。</Changelog>
-    <Version>1.0.0.0</Version>
+    <Changelog>1.0.0.1 测试版。原版插件关闭后不再因为残留程序集停止文书和理符。1.0.0.0 为非官方国服适配，上游为 FFXIV-CombatReborn/ZodiacBuddyReborn 7.5.6.1（4913f31）。理符接取与交付尚未经实机确认。</Changelog>
+    <Version>1.0.0.1</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>ZodiacBuddyRebornCN</AssemblyName>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
