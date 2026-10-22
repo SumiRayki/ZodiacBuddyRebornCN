@@ -1,5 +1,6 @@
-author: daemitus, hiroa, MidoriKami, foophoof
-name: ZodiacBuddy
-punchline: Complete your Zodiac relic with style.
-description: This plugin attempts to help you complete your Zodiac weapon in various ways.
-repo_url: https://github.com/foophoof/ZodiacBuddy
+author: Unofficial CN adaptation
+name: Zodiac Buddy Reborn（国服适配）
+punchline: 非官方国服适配，未经上游背书。
+description: Unofficial Chinese-client fork of FFXIV-CombatReborn/ZodiacBuddyReborn 7.5.6.1.
+repo_url: https://github.com/SumiRayki/ZodiacBuddyRebornCN
+upstream: https://github.com/FFXIV-CombatReborn/ZodiacBuddyReborn

@@ -143,6 +143,13 @@ internal partial class AnimusManager
 
     private unsafe void ObserveLeveAutomation(IFramework _)
     {
+        if (Service.UpstreamConflict)
+        {
+            if (!_leveAutomation.IsTerminal)
+                FailLeveAutomation("ZodiacBuddy Reborn is also loaded. Disable one plugin; the CN adaptation cannot run beside it.");
+            return;
+        }
+
         if (_leveAutomation.IsTerminal)
             return;
         if (!_automationRun.IsActive(_leveContext.AutomationRunId))
@@ -226,5 +233,6 @@ internal partial class AnimusManager
         _automationRun.Cancel();
         _leveAutomation.Fail(message);
         Service.PluginLog.Warning($"[ZodiacBuddy/LEVE] {message}");
+        ZodiacBuddyPlugin.PrintError(message);
     }
 }

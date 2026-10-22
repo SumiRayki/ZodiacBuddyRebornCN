@@ -20,6 +20,7 @@ using ZodiacBuddy.Stages.Animus.Data;
 using FFXIVGameObject = FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject;
 using GameRelicNote = FFXIVClientStructs.FFXIV.Client.Game.UI.RelicNote;
 using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.AtkValueType;
+using ZodiacBuddy.Systems;
 using ZodiacBuddy.Systems.Fates;
 using ZodiacBuddy.Systems.Leves;
 
@@ -197,8 +198,18 @@ internal sealed unsafe class LeveDebugWindow : Window
         var found = false;
         foreach (var obj in Svc.Objects)
         {
-            if (!obj.Name.TextValue.Equals(issuerName, StringComparison.OrdinalIgnoreCase))
+            if (selected.IssuerDataId != 0)
+            {
+#pragma warning disable CS0618
+                var dataId = obj.DataId;
+#pragma warning restore CS0618
+                if (dataId != selected.IssuerDataId && obj.BaseId != selected.IssuerDataId)
+                    continue;
+            }
+            else if (!obj.Name.TextValue.Equals(issuerName, StringComparison.OrdinalIgnoreCase))
+            {
                 continue;
+            }
 
             found = true;
             var baseId = obj.Address == nint.Zero ? 0u : ((FFXIVGameObject*)obj.Address)->BaseId;
@@ -207,7 +218,9 @@ internal sealed unsafe class LeveDebugWindow : Window
         }
 
         if (!found)
-            ImGui.TextDisabled($"No loaded object named '{issuerName}'.");
+            ImGui.TextDisabled(selected.IssuerDataId == 0
+                ? $"No loaded object named '{issuerName}'."
+                : $"No loaded object with data id {selected.IssuerDataId} ({issuerName}).");
     }
 
     private static void DrawVendorMenu()
@@ -402,7 +415,10 @@ internal sealed unsafe class LeveDebugWindow : Window
         var player = Player.Object;
         foreach (var obj in Svc.Objects)
         {
-            if (obj.Name.TextValue.Equals(issuerName, StringComparison.OrdinalIgnoreCase))
+#pragma warning disable CS0618
+            if ((selected.IssuerDataId != 0 && (obj.DataId == selected.IssuerDataId || obj.BaseId == selected.IssuerDataId))
+#pragma warning restore CS0618
+                || (selected.IssuerDataId == 0 && obj.Name.TextValue.Equals(issuerName, StringComparison.OrdinalIgnoreCase)))
             {
                 var baseId = obj.Address == nint.Zero ? 0u : ((FFXIVGameObject*)obj.Address)->BaseId;
                 var distance = player == null ? -1f : Vector3.Distance(player.Position, obj.Position);
@@ -483,10 +499,15 @@ internal sealed unsafe class LeveDebugWindow : Window
         if (!LeveExecutionProfiles.TryGet(leveId, out var spec))
             return names;
         foreach (var name in new[] { spec.PriorityTargetName, spec.ObjectiveObjectName, spec.ProtectedChargeName, spec.ItemSourceName, spec.PrimeTargetName, spec.EmergedTargetName })
-            if (!string.IsNullOrEmpty(name))
-                names.Add(name);
+        {
+            foreach (var nameplate in ClientActorNames.Nameplates(name))
+                names.Add(nameplate);
+        }
         if (spec.Kind == LeveExecutionKind.BeckonEscort)
-            names.Add("Mine Hound");
+        {
+            foreach (var nameplate in ClientActorNames.Nameplates("Mine Hound"))
+                names.Add(nameplate);
+        }
         return names;
     }
 

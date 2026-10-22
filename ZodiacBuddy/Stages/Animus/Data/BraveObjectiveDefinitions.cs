@@ -1,4 +1,5 @@
 using Dalamud.Game.Text.SeStringHandling.Payloads;
+using System.Numerics;
 
 namespace ZodiacBuddy.Stages.Animus.Data;
 
@@ -55,4 +56,9 @@ internal struct LeveObjectiveDefinition : IBraveObjectiveDefinition
     public MapLinkPayload Position { get; init; }
     public uint LeveId { get; init; }
     public int LeveSlot { get; init; }
+    public uint IssuerDataId { get; init; }
+    public uint IssuerTerritoryId { get; init; }
+    public Vector3 IssuerPosition { get; init; }
+    public byte AssignmentTypeId { get; init; }
+    public string AssignmentLabel { get; init; }
 }

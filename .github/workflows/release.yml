@@ -1,0 +1,128 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "*.*.*.*"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install the pinned Chinese Dalamud SDK
+        shell: pwsh
+        run: .github/scripts/install-dalamud.ps1
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test ZodiacBuddyRebornCN.Tests/ZodiacBuddyRebornCN.Tests.csproj -c Release --nologo
+
+      - name: Build the plugin archive
+        shell: pwsh
+        run: |
+          dotnet build ZodiacBuddy/ZodiacBuddy.csproj -c Release -p:Version=${{ github.ref_name }} -p:AssemblyVersion=${{ github.ref_name }} --nologo
+          $built = "ZodiacBuddy/bin/Release/ZodiacBuddyRebornCN/latest.zip"
+          if (-not (Test-Path $built)) { throw "Dalamud packager did not produce latest.zip." }
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item $built dist/ZodiacBuddyRebornCN.zip
+          $hash = (Get-FileHash dist/ZodiacBuddyRebornCN.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          Set-Content -Path dist/SHA256SUMS.txt -Value "ZodiacBuddyRebornCN.zip  $hash" -Encoding ascii
+          $header = [System.IO.File]::ReadAllBytes("dist/ZodiacBuddyRebornCN.zip")
+          if ($header[0] -ne 0x50 -or $header[1] -ne 0x4B) { throw "Built archive is not a zip." }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin
+          path: dist/*
+
+  publish:
+    needs: verify
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugin
+          path: dist
+
+      - name: Publish the verified archive
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $hashLine = Get-Content dist/SHA256SUMS.txt -Raw
+          $notes = @"
+          ## 1.0.0.0 测试版
+
+          这是 FFXIV-CombatReborn/ZodiacBuddyReborn 标签 7.5.6.1（commit 4913f31ab829c21f6ae5289568f14cd182233bbc）的非官方国服适配。上游没有背书，本仓库也不是官方国服版本。
+
+          安装包只包含插件 DLL、清单和随插件分发的依赖。源码在本仓库，构建说明见 README。
+
+          ### 校验
+          ``````
+          $hashLine
+          ``````
+
+          ### 支持范围
+          - 国服客户端 2026.10.06.0000.0000
+          - Dalamud API 15
+          - 本包由 Actions 使用 ottercorp/dalamud-distrib 的 15.0.3.8（git ecd08fafd6092c51a011b23fe322442baaecf5ce）编译
+          - 开发机上的 XIVLauncherCN Hooks/dev 已是 15.0.3.9（commit e7efef21c1db9fa975b5fd97a4e3b77246bbec0a）。两份 FFXIVClientStructs.dll 不是同一个文件
+
+          ### 已知问题
+          - 尚未在国服实机确认理符接取和交付。请在卫月中打开测试版插件后再安装。
+          - 不能与原版 ZodiacBuddy Reborn 同时启用。启动后约 3 秒内如果检测到原版程序集，本插件会停止文书自动化并让出 /pzodiac 与 /ztarget。
+          - 不读取、不覆盖原版配置。原版配置文件仍留给原版插件。
+          - 交付菜单没有在数据里找到单独的“交付”标签。出现“报告”时选择该项；否则只在第一项不是接取分类时才选择第一项。无法识别时停止，不改文书进度。
+
+          ### 回滚
+          在卫月中禁用或移除本自定义仓库，然后重新启用原版。已发布的旧测试包保留在对应 Release，可从该 Release 的 zip 安装。
+          "@
+          Set-Content -Path dist/notes.md -Value $notes -Encoding utf8
+          gh release create "${{ github.ref_name }}" dist/ZodiacBuddyRebornCN.zip dist/SHA256SUMS.txt --title "${{ github.ref_name }} testing" --notes-file dist/notes.md
+
+      - name: Confirm the release archive downloads as a zip
+        shell: pwsh
+        run: |
+          $url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ZodiacBuddyRebornCN.zip"
+          curl.exe --fail --location --silent --show-error --output confirmed.zip $url
+          $header = [System.IO.File]::ReadAllBytes("confirmed.zip")
+          if ($header.Length -lt 2 -or $header[0] -ne 0x50 -or $header[1] -ne 0x4B) {
+            throw "Release URL did not return a zip: $url"
+          }
+
+  subscribe:
+    needs: publish
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ github.token }}
+
+      - name: Point pluginmaster at the confirmed archive
+        shell: pwsh
+        run: |
+          $url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ZodiacBuddyRebornCN.zip"
+          curl.exe --fail --location --silent --show-error --output confirmed.zip $url
+          .github/scripts/update-pluginmaster.ps1 -ZipPath confirmed.zip -DownloadUrl $url -OutputPath pluginmaster.json
+
+      - name: Commit the subscription file
+        shell: pwsh
+        run: |
+          git add pluginmaster.json
+          if (git diff --cached --quiet) { Write-Output "pluginmaster.json already matches."; exit 0 }
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "Point the custom repository at verified release ${{ github.ref_name }}."
+          git push origin HEAD:main

@@ -20,7 +20,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Lumina.Excel.Sheets;
 using ZodiacBuddy.Stages.Animus.Data;
+using ZodiacBuddy.Stages.Animus.Leves;
 using Callback = ECommons.Automation.Callback;
 using ZodiacBuddy.Systems.Leves;
 
@@ -28,6 +30,8 @@ namespace ZodiacBuddy.Stages.Animus;
 
 internal partial class AnimusManager
 {
+    private const int IssuerResolveTimeoutSeconds = 20;
+    private string[]? _assignmentCategoryLabels;
     private unsafe void DriveLeveAcquisition()
     {
         if (IsLeveAccepted(_leveContext.AutomationTarget.LeveId, out _))
@@ -76,12 +80,8 @@ internal partial class AnimusManager
             return;
         }
 
-        var issuer = FindLeveIssuer(_leveContext.AutomationTarget);
-        if (issuer == null)
-        {
-            _leveContext.AutomationStatus = $"Waiting for {GetLeveIssuerName(_leveContext.AutomationTarget.Issuer)} to load.";
+        if (!TryResolveLeveIssuer(out var issuer))
             return;
-        }
 
         var player = Player.Object;
         if (player == null)
@@ -166,80 +166,142 @@ internal partial class AnimusManager
     }
     private unsafe IGameObject? FindLeveIssuer(LeveObjectiveDefinition target)
     {
-        var issuerName = GetLeveIssuerName(target.Issuer);
-        var player = Player.Object;
+        var territory = Svc.ClientState.TerritoryType;
         IGameObject? best = null;
         var bestDistance = float.MaxValue;
         foreach (var obj in Svc.Objects)
         {
-            if (obj.Address == nint.Zero || !obj.IsTargetable || !obj.Name.TextValue.Equals(issuerName, StringComparison.OrdinalIgnoreCase))
+            if (obj.Address == nint.Zero)
                 continue;
 
-            var distance = player == null ? 0f : Vector3.Distance(player.Position, obj.Position);
-            if (distance >= bestDistance)
+            var identity = ReadObjectIdentity(obj);
+            var candidate = new LeveIssuerSelection.Candidate(
+                identity.DataId,
+                identity.BaseId,
+                territory,
+                obj.Position,
+                obj.IsTargetable,
+                obj.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventNpc);
+            if (!LeveIssuerSelection.MatchesIssuer(candidate, target.IssuerDataId, target.IssuerTerritoryId, target.IssuerPosition, out var distance) || distance >= bestDistance)
                 continue;
+
             best = obj;
             bestDistance = distance;
         }
+
         return best;
     }
+
+    private unsafe bool TryResolveLeveIssuer(out IGameObject issuer)
+    {
+        var found = FindLeveIssuer(_leveContext.AutomationTarget);
+        if (found != null)
+        {
+            _leveContext.IssuerUnresolvedSince = DateTime.MinValue;
+            issuer = found;
+            return true;
+        }
+
+        issuer = null!;
+        if (_leveContext.IssuerUnresolvedSince == DateTime.MinValue)
+            _leveContext.IssuerUnresolvedSince = DateTime.Now;
+
+        var target = _leveContext.AutomationTarget;
+        var waited = DateTime.Now - _leveContext.IssuerUnresolvedSince;
+        var detail = DescribeNearbyIssuers(target);
+        _leveContext.AutomationStatus = $"Waiting for issuer {target.IssuerDataId} ({target.Issuer}).";
+        if (EzThrottler.Throttle("ZBR_LeveIssuerMiss", 5000))
+        {
+            Service.PluginLog.Information(
+                $"[ZodiacBuddy/LEVE] LeveId={target.LeveId} state={_leveContext.AutomationState} expectedIssuer={target.IssuerDataId} '{target.Issuer}' expectedTerritory={target.IssuerTerritoryId} currentTerritory={Svc.ClientState.TerritoryType} waited={waited.TotalSeconds:F0}s candidates: {detail}");
+        }
+
+        if (waited.TotalSeconds >= IssuerResolveTimeoutSeconds)
+        {
+            FailLeveAutomation(
+                $"Issuer data id {target.IssuerDataId} ({target.Issuer}) was not found for LeveId={target.LeveId} after {IssuerResolveTimeoutSeconds}s. Candidates: {detail}");
+        }
+
+        return false;
+    }
+
+    private unsafe string DescribeNearbyIssuers(LeveObjectiveDefinition target)
+    {
+        var territory = Svc.ClientState.TerritoryType;
+        if (territory != target.IssuerTerritoryId)
+            return $"current territory {territory} is not issuer territory {target.IssuerTerritoryId}.";
+
+        var player = Player.Object;
+        if (player == null)
+            return "local player is not available.";
+
+        var nearby = new List<string>(8);
+        foreach (var obj in Svc.Objects)
+        {
+            if (obj.Address == nint.Zero || obj.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventNpc)
+                continue;
+
+            var distance = Vector3.Distance(player.Position, obj.Position);
+            if (distance > 40f)
+                continue;
+
+            var identity = ReadObjectIdentity(obj);
+            nearby.Add($"{identity.DataId}/{identity.BaseId} '{obj.Name.TextValue}' {distance:F1}y targetable={obj.IsTargetable}");
+            if (nearby.Count >= 8)
+                break;
+        }
+
+        return nearby.Count == 0 ? "no EventNpc within 40y." : string.Join("; ", nearby);
+    }
+
+    private IReadOnlyList<string> AssignmentCategoryLabels
+    {
+        get
+        {
+            if (_assignmentCategoryLabels != null)
+                return _assignmentCategoryLabels;
+
+            _assignmentCategoryLabels = Service.DataManager.GetExcelSheet<LeveAssignmentType>()
+                .Select(row => row.Name.ExtractText())
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            return _assignmentCategoryLabels;
+        }
+    }
+
+    private static (uint DataId, uint BaseId) ReadObjectIdentity(IGameObject obj)
+    {
+#pragma warning disable CS0618 // DataId is the previous name of BaseId on Dalamud API 15. Compare both until a client shows they differ.
+        return (obj.DataId, obj.BaseId);
+#pragma warning restore CS0618
+    }
+
+    private static LeveIssuerSelection.MenuEntry[] ReadSelectString(AddonMaster.SelectString master)
+        => master.Entries.Select(entry => new LeveIssuerSelection.MenuEntry(entry.Index, entry.Text ?? string.Empty)).ToArray();
+
     private void DriveLeveIssuerMenu(AddonMaster.SelectString master)
     {
         if (master.Entries.Length == 0 || !EzThrottler.Throttle("ZBR_LeveIssuerMenu", 700))
             return;
 
-        var company = GetLeveGrandCompany(_leveContext.AutomationTarget.Issuer);
-        if (!string.IsNullOrEmpty(company))
+        var target = _leveContext.AutomationTarget;
+        var entries = ReadSelectString(master);
+        var rendered = string.Join(" | ", entries.Select(entry => $"{entry.Index}:'{entry.Text}'"));
+        var index = LeveIssuerSelection.ChooseAcquire(target.AssignmentTypeId, target.AssignmentLabel, entries, out var detail);
+        if (EzThrottler.Throttle("ZBR_LeveIssuerMenuLog", 5000))
         {
-            foreach (var entry in master.Entries)
-            {
-                if (!entry.Text.Contains(company, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Selecting Grand Company issuer menu index {entry.Index} '{entry.Text}' for {company} LeveId={_leveContext.AutomationTarget.LeveId}.");
-                entry.Select();
-                return;
-            }
+            Service.PluginLog.Information(
+                $"[ZodiacBuddy/LEVE] LeveId={target.LeveId} state={_leveContext.AutomationState} assignment={target.AssignmentTypeId} '{target.AssignmentLabel}' menu: {rendered}. {detail}");
+        }
 
-            foreach (var entry in master.Entries)
-            {
-                if (!entry.Text.Contains("Grand Company", StringComparison.OrdinalIgnoreCase)
-                    && !entry.Text.Contains("Company Leve", StringComparison.OrdinalIgnoreCase))
-                    continue;
-                Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Selecting Grand Company bridge menu index {entry.Index} '{entry.Text}' while looking for {company} LeveId={_leveContext.AutomationTarget.LeveId}.");
-                entry.Select();
-                return;
-            }
-
-            if (EzThrottler.Throttle("ZBR_LeveGcMenuMissing", 3000))
-            {
-                var entries = string.Join(" | ", master.Entries.Select(entry => $"{entry.Index}:'{entry.Text}'"));
-                Service.PluginLog.Warning($"[ZodiacBuddy/LEVE] Could not find '{company}' or a Grand Company bridge in SelectString for LeveId={_leveContext.AutomationTarget.LeveId}. Entries: {entries}");
-            }
+        if (index == null)
+        {
+            FailLeveAutomation($"Unknown acquisition menu for LeveId={target.LeveId} assignment={target.AssignmentTypeId} '{target.AssignmentLabel}'. {detail} Entries: {rendered}");
             return;
         }
 
-        foreach (var entry in master.Entries)
-        {
-            if (!entry.Text.Contains("Battlecraft", StringComparison.OrdinalIgnoreCase))
-                continue;
-            Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Selecting issuer menu index {entry.Index} '{entry.Text}' for battlecraft leves.");
-            entry.Select();
-            return;
-        }
-
-        var fallback = master.Entries[0];
-        Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Battlecraft label was not found; selecting issuer menu fallback index {fallback.Index} '{fallback.Text}'.");
-        fallback.Select();
-    }
-    private static string GetLeveGrandCompany(string issuer)
-    {
-        if (issuer.Contains("Maelstrom", StringComparison.OrdinalIgnoreCase))
-            return "Maelstrom";
-        if (issuer.Contains("Order of the Twin Adder", StringComparison.OrdinalIgnoreCase))
-            return "Order of the Twin Adder";
-        if (issuer.Contains("Immortal Flames", StringComparison.OrdinalIgnoreCase))
-            return "Immortal Flames";
-        return string.Empty;
+        master.Entries.First(entry => entry.Index == index.Value).Select();
     }
     private static string GetLeveIssuerName(string issuer)
     {
@@ -288,9 +350,18 @@ internal partial class AnimusManager
         if (!EzThrottler.Throttle("ZBR_LeveExitIssuerMenu", 700))
             return true;
 
-        var exit = master.Entries[^1];
-        Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Leaving issuer menu {reason} via index {exit.Index} '{exit.Text}'.");
-        exit.Select();
+        var entries = ReadSelectString(master);
+        var rendered = string.Join(" | ", entries.Select(entry => $"{entry.Index}:'{entry.Text}'"));
+        var index = LeveIssuerSelection.ChooseExit(AssignmentCategoryLabels, entries, out var detail);
+        if (EzThrottler.Throttle("ZBR_LeveExitIssuerMenuLog", 5000))
+            Service.PluginLog.Information($"[ZodiacBuddy/LEVE] Exit menu while {reason} for LeveId={_leveContext.AutomationTarget.LeveId}: {rendered}. {detail}");
+        if (index == null)
+        {
+            FailLeveAutomation($"Cannot close the issuer menu while {reason} for LeveId={_leveContext.AutomationTarget.LeveId}. {detail} Entries: {rendered}");
+            return true;
+        }
+
+        master.Entries.First(entry => entry.Index == index.Value).Select();
         return true;
     }
     private void BeginLeveUnavailableClose(string message)

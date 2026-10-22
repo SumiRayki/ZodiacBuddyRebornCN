@@ -16,7 +16,7 @@ internal class ConfigWindow : Window {
     /// <summary>
     /// Initializes a new instance of the <see cref="ConfigWindow"/> class.
     /// </summary>
-    public ConfigWindow() : base("Zodiac Buddy Setup")
+    public ConfigWindow() : base("Zodiac Buddy（国服适配）")
     {
         this.RespectCloseHotkey = true;
 

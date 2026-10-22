@@ -22,6 +22,7 @@ using System.Linq;
 using System.Numerics;
 using ZodiacBuddy.Stages.Animus.Data;
 using Callback = ECommons.Automation.Callback;
+using ZodiacBuddy.Systems;
 using ZodiacBuddy.Systems.Fates;
 using ZodiacBuddy.Systems.Leves;
 
@@ -46,11 +47,11 @@ internal partial class AnimusManager
                 || !FateTargeting.IsAttackableEnemy(npc)
                 || !BelongsToLeveDirector(npc, leveDirector))
                 continue;
-            if (!string.IsNullOrEmpty(excludeName) && npc.Name.TextValue.Equals(excludeName, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(excludeName) && ClientActorNames.Matches(npc.Name.TextValue, npc.NameId, excludeName))
                 continue;
 
             var distance = player == null ? 0f : Vector3.Distance(player.Position, npc.Position);
-            if (!string.IsNullOrEmpty(priorityTargetName) && npc.Name.TextValue.Equals(priorityTargetName, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(priorityTargetName) && ClientActorNames.Matches(npc.Name.TextValue, npc.NameId, priorityTargetName))
             {
                 if (distance < priorityDistance)
                 {
@@ -83,7 +84,7 @@ internal partial class AnimusManager
         {
             if (obj is not IBattleNpc npc
                 || !FateTargeting.IsAttackableEnemy(npc)
-                || !npc.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase)
+                || !ClientActorNames.Matches(npc.Name.TextValue, npc.NameId, name)
                 || !BelongsToLeveDirector(npc, leveDirector))
                 continue;
 
@@ -111,7 +112,7 @@ internal partial class AnimusManager
         {
             if (obj.Address == nint.Zero
                 || targetableOnly && !obj.IsTargetable
-                || !obj.Name.TextValue.Equals(name, StringComparison.OrdinalIgnoreCase)
+                || !ClientActorNames.Matches(obj.Name.TextValue, obj is IBattleNpc battleNpc ? battleNpc.NameId : 0u, name)
                 || !BelongsToLeveDirector(obj, leveDirector))
                 continue;
 

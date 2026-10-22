@@ -47,4 +47,5 @@ internal sealed class LeveAutomationContext
     internal DateTime LurePrimeInRangeAt = DateTime.MinValue;
     internal bool TimedCullWaiting;
     internal string TimedCullTodoSnapshot = string.Empty;
+    internal DateTime IssuerUnresolvedSince = DateTime.MinValue;
 }

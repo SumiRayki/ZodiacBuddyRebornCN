@@ -1,11 +1,21 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <Authors>daemitus, MidoriKami, foophoof</Authors>
-    <Description>Complete your Zodiac relic with style.</Description>
-    <PackageProjectUrl>https://github.com/MidoriKami/ZodiacBuddy</PackageProjectUrl>
-    <Version>1.13.0.0</Version>
+    <Authors>Unofficial CN adaptation</Authors>
+    <Author>Unofficial CN adaptation</Author>
+    <Name>Zodiac Buddy Reborn（国服适配）</Name>
+    <Description>Unofficial Chinese-client adaptation of FFXIV-CombatReborn/ZodiacBuddyReborn 7.5.6.1 (4913f31ab829c21f6ae5289568f14cd182233bbc). Not affiliated with or endorsed by the upstream project. Animus leve accept and turn-in use CN NPC data ids and client-language menus. Support target: CN client 2026.10.06.0000.0000, Dalamud API 15. This version has not been verified in a live CN session.</Description>
+    <Punchline>国服适配测试版。非官方，未经上游背书。理符接取与交付尚未经实机确认。</Punchline>
+    <PackageProjectUrl>https://github.com/SumiRayki/ZodiacBuddyRebornCN</PackageProjectUrl>
+    <RepoUrl>https://github.com/SumiRayki/ZodiacBuddyRebornCN</RepoUrl>
+    <Tags>relic;zodiac;animus</Tags>
+    <CategoryTags>Utility</CategoryTags>
+    <AcceptsFeedback>false</AcceptsFeedback>
+    <Changelog>1.0.0.0 测试版。非官方国服适配，上游为 FFXIV-CombatReborn/ZodiacBuddyReborn 7.5.6.1（4913f31）。理符发行人改为数据 ID，接取菜单使用客户端分类名。尚未在国服实机确认。</Changelog>
+    <Version>1.0.0.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>ZodiacBuddyReborn</AssemblyName>
+    <AssemblyName>ZodiacBuddyRebornCN</AssemblyName>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RestoreLockedMode>true</RestoreLockedMode>
   </PropertyGroup>
 
   <ItemGroup>

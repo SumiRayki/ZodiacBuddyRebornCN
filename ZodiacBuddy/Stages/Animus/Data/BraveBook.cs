@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Numerics;
 using Lumina.Excel.Sheets;
+using ZodiacBuddy.Stages.Animus.Leves;
 
 namespace ZodiacBuddy.Stages.Animus.Data;
 
@@ -171,21 +172,27 @@ internal struct BraveBook {
                     var leveName = leve.Name.ExtractText();
 
                     var position = BraveBookLocationCatalog.GetLevePosition(leveId);
-                    var issuerName = BraveLeveCatalog.GetIssuer(leveId);
+                    var issuer = ResolveLeveIssuer(leve);
 
                     var zoneName = position.TerritoryType.Value.PlaceName.Value.Name.ExtractText();
                     var zoneId = position.TerritoryType.RowId;
 
                     braveBook.Leves[i] = new LeveObjectiveDefinition {
                         Name = leveName,
-                        Issuer = issuerName,
+                        Issuer = issuer.Name,
                         ZoneName = zoneName,
                         ZoneId = zoneId,
                         LocationName = string.Empty,
                         Position = position,
                         LeveId = leveId,
                         LeveSlot = i,
+                        IssuerDataId = issuer.DataId,
+                        IssuerTerritoryId = issuer.TerritoryId,
+                        IssuerPosition = issuer.Position,
+                        AssignmentTypeId = issuer.AssignmentTypeId,
+                        AssignmentLabel = issuer.AssignmentLabel,
                     };
+                    Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Resolved LeveId={leveId} issuerDataId={issuer.DataId} name='{issuer.Name}' territory={issuer.TerritoryId} assignment={issuer.AssignmentTypeId} '{issuer.AssignmentLabel}' upstreamLabel='{BraveLeveCatalog.GetIssuer(leveId)}'.");
                 }
             }
         }
@@ -193,5 +200,48 @@ internal struct BraveBook {
             Service.PluginLog.Error(ex, "[ZodiacBuddy/BOOK] An error occurred during plugin data load.");
             throw;
         }
+    }
+
+    private readonly record struct ResolvedLeveIssuer(
+        string Name,
+        uint DataId,
+        uint TerritoryId,
+        Vector3 Position,
+        byte AssignmentTypeId,
+        string AssignmentLabel);
+
+    private static ResolvedLeveIssuer ResolveLeveIssuer(Leve leve)
+    {
+        if (!leve.LevelLevemete.IsValid)
+            throw new InvalidOperationException($"Leve {leve.RowId} has no LevelLevemete row.");
+
+        var level = leve.LevelLevemete.Value;
+        if (level.Type != LeveIssuerSelection.EventNpcLevelType)
+            throw new InvalidOperationException($"Leve {leve.RowId} LevelLevemete type is {level.Type}, expected EventNpc type {LeveIssuerSelection.EventNpcLevelType}.");
+
+        var dataId = level.Object.RowId;
+        if (dataId == 0)
+            throw new InvalidOperationException($"Leve {leve.RowId} LevelLevemete does not reference an object.");
+
+        var resident = Service.DataManager.GetExcelSheet<ENpcResident>().GetRow(dataId);
+        var name = resident.Singular.ExtractText();
+        if (string.IsNullOrWhiteSpace(name))
+            throw new InvalidOperationException($"Leve {leve.RowId} issuer data id {dataId} has an empty ENpcResident name.");
+
+        if (!leve.LeveAssignmentType.IsValid)
+            throw new InvalidOperationException($"Leve {leve.RowId} has no LeveAssignmentType.");
+
+        var assignmentType = checked((byte)leve.LeveAssignmentType.RowId);
+        var assignmentLabel = leve.LeveAssignmentType.Value.Name.ExtractText();
+        if (string.IsNullOrWhiteSpace(assignmentLabel))
+            throw new InvalidOperationException($"Leve {leve.RowId} assignment type {assignmentType} has an empty client name.");
+
+        return new ResolvedLeveIssuer(
+            name,
+            dataId,
+            level.Territory.RowId,
+            new Vector3(level.X, level.Y, level.Z),
+            assignmentType,
+            assignmentLabel);
     }
 }

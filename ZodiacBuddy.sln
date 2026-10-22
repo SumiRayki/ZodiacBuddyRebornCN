@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31717.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZodiacBuddy", "ZodiacBuddy\ZodiacBuddy.csproj", "{1058E384-DE81-4830-8EE6-209E4E1E3CB9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZodiacBuddyRebornCN.Tests", "ZodiacBuddyRebornCN.Tests\ZodiacBuddyRebornCN.Tests.csproj", "{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9A35E954-E3A7-4CD7-AFA2-09B84F0BFFB7}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
@@ -14,7 +16,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Github Actions", "Github Actions", "{CF562AC1-32CB-4F80-B105-3190A4E6C9CF}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\build.yml = .github\workflows\build.yml
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+		.github\workflows\release.yml = .github\workflows\release.yml
 	EndProjectSection
 EndProject
 Global
@@ -33,6 +36,14 @@ Global
 		{1058E384-DE81-4830-8EE6-209E4E1E3CB9}.Release|x64.Build.0 = Release|x64
 		{1058E384-DE81-4830-8EE6-209E4E1E3CB9}.ReleaseForms|x64.ActiveCfg = Release|x64
 		{1058E384-DE81-4830-8EE6-209E4E1E3CB9}.ReleaseForms|x64.Build.0 = Release|x64
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.Debug|x64.Build.0 = Debug|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.DebugForms|x64.ActiveCfg = Debug|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.DebugForms|x64.Build.0 = Debug|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.Release|x64.ActiveCfg = Release|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.Release|x64.Build.0 = Release|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.ReleaseForms|x64.ActiveCfg = Release|Any CPU
+		{8C4E2A11-6B7D-4E5F-9A20-1D3C7B8E4F21}.ReleaseForms|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

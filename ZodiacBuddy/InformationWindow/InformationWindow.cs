@@ -119,8 +119,8 @@ public abstract class InformationWindow {
 
             foreach (var territoryId in BonusConfiguration.ActiveBonus) {
                 var dutyName = BonusLightDuty.GetValue(territoryId).DutyName
-                    .Replace("Œ", "Oe")
-                    .Replace("œ", "oe");
+                    .Replace("Å’", "Oe")
+                    .Replace("Å“", "oe");
                 ImGui.Text($"\"{dutyName}\"");
             }
         }

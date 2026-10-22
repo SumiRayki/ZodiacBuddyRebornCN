@@ -16,8 +16,8 @@ public class BraveWindow() : InformationWindow.InformationWindow("Zodiac Brave I
             return;
 
         name = name
-            .Replace("Œ", "Oe")
-            .Replace("œ", "oe");
+            .Replace("Å’", "Oe")
+            .Replace("Å“", "oe");
         ImGui.Text(name);
 
         ImGui.PushStyleColor(ImGuiCol.PlotHistogram, InfoWindowConfiguration.ProgressColor);

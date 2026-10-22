@@ -23,4 +23,10 @@ public class Service {
     public static ZodiacBuddyPlugin Plugin { get; set; } = null!;
     public static PluginConfiguration Configuration { get; set; } = null!;
     public static BonusLightManager BonusLightManager { get; set; } = null!;
+
+    /// <summary>
+    /// True when the upstream ZodiacBuddyReborn assembly is also loaded.
+    /// The two plugins share commands and automation and must not run together.
+    /// </summary>
+    public static bool UpstreamConflict { get; set; }
 }

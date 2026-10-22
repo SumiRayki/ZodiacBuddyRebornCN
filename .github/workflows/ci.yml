@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install the pinned Chinese Dalamud SDK
+        shell: pwsh
+        run: .github/scripts/install-dalamud.ps1
+
+      - name: Test
+        shell: pwsh
+        run: dotnet test ZodiacBuddyRebornCN.Tests/ZodiacBuddyRebornCN.Tests.csproj -c Release --nologo
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build ZodiacBuddy/ZodiacBuddy.csproj -c Release --nologo

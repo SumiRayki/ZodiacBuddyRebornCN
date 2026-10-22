@@ -1,0 +1,25 @@
+Zodiac Buddy Reborn（国服适配）
+Copyright (C) the upstream authors of FFXIV-CombatReborn/ZodiacBuddyReborn
+and the maintainer of this unofficial fork.
+
+This program is free software under the GNU Affero General Public License
+version 3. The full license is in the LICENSE file. This fork is not affiliated
+with, maintained by, or endorsed by FFXIV-CombatReborn or Square Enix.
+
+Upstream baseline: https://github.com/FFXIV-CombatReborn/ZodiacBuddyReborn
+tag 7.5.6.1, commit 4913f31ab829c21f6ae5289568f14cd182233bbc.
+
+Corresponding source for each binary release is the Git tag of the same version
+in this repository, together with the build instructions in README.md.
+
+Bundled runtime dependencies, which the Dalamud packager places beside the plugin,
+keep their own licenses:
+
+- ECommons 3.2.0.9, MIT, https://github.com/NightmareXIV/ECommons
+- LitJWT 2.0.2, MIT, https://github.com/Cysharp/LitJWT
+- LuminaSupplemental.Excel 5.1.5, GPL-3.0, https://github.com/Critical-Impact/LuminaSupplemental
+- CSVFile 3.2.1, Apache-2.0, https://github.com/tspence/csharp-csv-reader
+- CsvHelper 30.0.1, MS-PL OR Apache-2.0
+- Sylvan.Data.Csv 1.4.3, MIT, https://github.com/MarkPflug/Sylvan
+
+Dalamud itself is not redistributed. No game assets are included.

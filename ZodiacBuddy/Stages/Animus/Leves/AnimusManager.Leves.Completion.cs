@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using ZodiacBuddy.Stages.Animus.Data;
+using ZodiacBuddy.Stages.Animus.Leves;
 using Callback = ECommons.Automation.Callback;
 using ZodiacBuddy.Systems.Leves;
 
@@ -123,20 +124,31 @@ internal partial class AnimusManager
         if (GenericHelpers.TryGetAddonByName<AtkUnitBase>("SelectString", out var selectString) && selectString != null && GenericHelpers.IsAddonReady(selectString))
         {
             var master = new AddonMaster.SelectString(selectString);
-            if (master.Entries.Length > 0 && EzThrottler.Throttle("ZBR_LeveCollectReward", 700))
+            if (master.Entries.Length == 0 || !EzThrottler.Throttle("ZBR_LeveCollectReward", 700))
+                return;
+
+            var target = _leveContext.AutomationTarget;
+            var entries = ReadSelectString(master);
+            var rendered = string.Join(" | ", entries.Select(entry => $"{entry.Index}:'{entry.Text}'"));
+            var index = LeveIssuerSelection.ChooseTurnIn(AssignmentCategoryLabels, entries, out var detail);
+            if (EzThrottler.Throttle("ZBR_LeveCollectRewardLog", 5000))
             {
-                Service.PluginLog.Verbose($"[ZodiacBuddy/LEVE] Selecting reward menu index 0 '{master.Entries[0].Text}'.");
-                master.Entries[0].Select();
+                Service.PluginLog.Information(
+                    $"[ZodiacBuddy/LEVE] LeveId={target.LeveId} state={_leveContext.AutomationState} reward menu: {rendered}. {detail}");
             }
+
+            if (index == null)
+            {
+                FailLeveAutomation($"Unknown turn-in menu for LeveId={target.LeveId}. {detail} Entries: {rendered}");
+                return;
+            }
+
+            master.Entries.First(entry => entry.Index == index.Value).Select();
             return;
         }
 
-        var issuer = FindLeveIssuer(_leveContext.AutomationTarget);
-        if (issuer == null || Player.Object == null)
-        {
-            _leveContext.AutomationStatus = "Waiting for the issuer to become available after return.";
+        if (!TryResolveLeveIssuer(out var issuer) || Player.Object == null)
             return;
-        }
 
         var distance = Vector3.Distance(Player.Object.Position, issuer.Position);
         if (distance > LeveInteractDistance)

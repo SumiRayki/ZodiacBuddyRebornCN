@@ -130,5 +130,6 @@ internal sealed class LeveAutomationController
         Context.LurePrimeInRangeAt = DateTime.MinValue;
         Context.TimedCullWaiting = false;
         Context.TimedCullTodoSnapshot = string.Empty;
+        Context.IssuerUnresolvedSince = DateTime.MinValue;
     }
 }

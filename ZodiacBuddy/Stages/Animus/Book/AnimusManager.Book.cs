@@ -150,7 +150,15 @@ internal partial class AnimusManager
     }
 
     private void TickBookAutomation(IFramework framework)
-        => AdvanceBookAutomation();
+    {
+        if (Service.UpstreamConflict)
+        {
+            CancelBookAutomation();
+            return;
+        }
+
+        AdvanceBookAutomation();
+    }
 
     private void ClearCurrentBookObjective()
     {

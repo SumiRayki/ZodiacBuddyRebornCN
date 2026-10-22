@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using ZodiacBuddy;
+using ZodiacBuddy.Systems;
 
 namespace ZodiacBuddy.Systems.Fates;
 
@@ -420,7 +421,7 @@ internal static unsafe class FateTargeting
                 if (obj is IBattleNpc sticky
                     && sticky.GameObjectId == stickyTargetId
                     && IsFateEnemy(sticky, fateId)
-                    && sticky.Name.TextValue.Equals(targetName, StringComparison.OrdinalIgnoreCase))
+                    && ClientActorNames.Matches(sticky.Name.TextValue, sticky.NameId, targetName))
                     return sticky;
             }
         }
@@ -435,7 +436,7 @@ internal static unsafe class FateTargeting
         {
             if (obj is not IBattleNpc npc
                 || !IsFateEnemy(npc, fateId)
-                || !npc.Name.TextValue.Equals(targetName, StringComparison.OrdinalIgnoreCase))
+                || !ClientActorNames.Matches(npc.Name.TextValue, npc.NameId, targetName))
                 continue;
 
             var distance = Vector3.DistanceSquared(player.Position, npc.Position);
@@ -703,7 +704,7 @@ internal static unsafe class FateTargeting
                 || npc.MaxHp == 0
                 || GetFateId(npc) != fateId
                 || IsAttackableEnemy(npc)
-                || !npc.Name.TextValue.Equals(expectedName, StringComparison.OrdinalIgnoreCase))
+                || !ClientActorNames.Matches(npc.Name.TextValue, npc.NameId, expectedName))
                 continue;
 
             var distance = Vector3.DistanceSquared(player.Position, npc.Position);
@@ -871,7 +872,7 @@ internal static unsafe class FateTargeting
 
             if (withinStarterArea
                 && !string.IsNullOrWhiteSpace(fallbackName)
-                && obj.Name.TextValue.Equals(fallbackName, StringComparison.OrdinalIgnoreCase))
+                && ClientActorNames.Matches(obj.Name.TextValue, obj is IBattleNpc namedNpc ? namedNpc.NameId : 0u, fallbackName))
             {
                 if (playerDistance < namedDistance)
                 {
@@ -913,7 +914,7 @@ internal static unsafe class FateTargeting
         foreach (var obj in Svc.Objects)
         {
             var name = obj.Name.TextValue;
-            var nameMatch = name.Equals(fallbackName, StringComparison.OrdinalIgnoreCase);
+            var nameMatch = ClientActorNames.Matches(name, obj is IBattleNpc namedNpc ? namedNpc.NameId : 0u, fallbackName);
             var motivationMatch = motivationNpcUsable && obj.EntityId == motivationNpc;
             var stagingDistance = Vector3.DistanceSquared(stagingPosition, obj.Position);
             if (!nameMatch && !motivationMatch && stagingDistance > 30f * 30f)

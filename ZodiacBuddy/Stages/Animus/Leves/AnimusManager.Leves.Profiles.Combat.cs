@@ -22,6 +22,7 @@ using System.Linq;
 using System.Numerics;
 using ZodiacBuddy.Stages.Animus.Data;
 using Callback = ECommons.Automation.Callback;
+using ZodiacBuddy.Systems;
 using ZodiacBuddy.Systems.Leves;
 
 namespace ZodiacBuddy.Stages.Animus;
@@ -241,7 +242,7 @@ internal partial class AnimusManager
         if (FindNearestNamedObject(spec.ObjectiveObjectName, true) is { } destination)
         {
             var distance = Player.Object == null ? 0f : Vector3.Distance(Player.Object.Position, destination.Position);
-            _leveContext.AutomationStatus = $"Moving to {spec.ObjectiveObjectName} at {distance:F1}y to spring the next ambush.";
+            _leveContext.AutomationStatus = $"Moving to {destination.Name.TextValue} at {distance:F1}y to spring the next ambush.";
             if (distance > LeveRoundsDestinationDistance)
                 EnsureLeveProfileNavigation(destination.Position, NavigationPurpose.LeveMapFlagTravel, "rounds destination");
             else
@@ -283,7 +284,7 @@ internal partial class AnimusManager
             var distance = Player.Object == null ? 0f : Vector3.Distance(Player.Object.Position, parchment.Position);
             if (distance > LeveObjectiveObjectInteractDistance)
             {
-                _leveContext.AutomationStatus = $"Moving to {spec.ObjectiveObjectName} at {distance:F1}y.";
+                _leveContext.AutomationStatus = $"Moving to {parchment.Name.TextValue} at {distance:F1}y.";
                 EnsureLeveProfileNavigation(parchment.Position, NavigationPurpose.LeveMapFlagTravel, "Necrologos parchment");
                 return;
             }
@@ -409,11 +410,11 @@ internal partial class AnimusManager
 
         ClearLeveCombatTarget("lure area clear");
         if (!TryDriveLeveMarkerFallback(haveItem
-                ? $"Holding lure item {spec.EventItemId}; searching for a prime location."
-                : $"No {spec.ItemSourceName} is loaded; checking the live leve markers."))
+                ? $"Holding lure item {spec.EventItemId}; searching for {string.Join("/", ClientActorNames.Nameplates(spec.PrimeTargetName))}."
+                : $"No {string.Join("/", ClientActorNames.Nameplates(spec.ItemSourceName))} is loaded; checking the live leve markers."))
             _leveContext.AutomationStatus = haveItem
-                ? $"Holding lure item {spec.EventItemId}; waiting for a prime location to load."
-                : $"Waiting for {spec.ItemSourceName} or another lure objective to load.";
+                ? $"Holding lure item {spec.EventItemId}; waiting for {string.Join("/", ClientActorNames.Nameplates(spec.PrimeTargetName))} to load."
+                : $"Waiting for {string.Join("/", ClientActorNames.Nameplates(spec.ItemSourceName))} or another lure objective to load.";
     }
     private void ResetLeveLureInteractionSettle()
     {

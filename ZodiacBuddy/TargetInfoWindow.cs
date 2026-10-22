@@ -11,7 +11,7 @@ internal sealed class TargetInfoWindow : Window
     private const byte MonsterObjectiveRequiredProgress = 3;
     private readonly AnimusAutomationFacade automation;
 
-    internal TargetInfoWindow(AnimusAutomationFacade automation) : base("ZodiacBuddy Target Info", ImGuiWindowFlags.AlwaysAutoResize)
+    internal TargetInfoWindow(AnimusAutomationFacade automation) : base("ZodiacBuddy 目标（国服适配）", ImGuiWindowFlags.AlwaysAutoResize)
     {
         this.automation = automation;
         IsOpen = Service.Configuration.TargetInfoWindowWasOpen;
