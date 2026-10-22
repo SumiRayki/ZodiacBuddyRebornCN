@@ -6,7 +6,7 @@ internal static class BraveLeveCatalog
 {
     /// <summary>
     /// Upstream English labels, kept for diagnostics only. Object matching uses LevelLevemete
-    /// data ids, and menus use the client LeveAssignmentType name.
+    /// data ids. Menus use LeveAssignmentType when that text is on the button, otherwise the Addon SelectString label.
     /// </summary>
     internal static string GetIssuer(uint leveId) {
         var (gcId, issuerName) = leveId switch {
