@@ -18,10 +18,22 @@ internal static class LeveIssuerSelection
     internal const byte ImmortalFlamesAssignmentType = 15;
     internal const float IssuerPositionTolerance = 20f;
 
-    /// <summary>Substring of the verified GuildleveAssignment type「军队理符发行处」.</summary>
+    /// <summary>Addon 594. SelectString label for LeveAssignmentType 1, whose sheet name is 佣兵作业.</summary>
+    internal const string BattlecraftMenuLabel = "佣兵任务";
+
+    /// <summary>Addon 595. SelectString groups miner, botanist, and fisher; it is not those job names.</summary>
+    internal const string FieldcraftMenuLabel = "采集任务";
+
+    /// <summary>Addon 596. SelectString groups the crafting jobs; it is not those job names.</summary>
+    internal const string TradecraftMenuLabel = "制作任务";
+
+    /// <summary>Addon 4570. Grand Company supply entry on the same menu as company leves.</summary>
+    internal const string SupplyMenuLabel = "筹备任务";
+
+    /// <summary>Substring of GuildleveAssignment.Type「军队理符发行处」. This is the issuer's function title, not a SelectString entry.</summary>
     internal const string GrandCompanyBridgeLabel = "军队理符";
 
-    /// <summary>Substring of the verified GuildleveAssignment type「行会理符发行处」.</summary>
+    /// <summary>Substring of GuildleveAssignment.Type「行会理符发行处」. This is the issuer's function title, not a SelectString entry.</summary>
     internal const string GuildBridgeLabel = "行会理符";
 
     internal readonly record struct MenuEntry(int Index, string Text);
@@ -81,37 +93,20 @@ internal static class LeveIssuerSelection
             return specific.Value.Index;
         }
 
-        var bridge = assignmentType switch
+        var menuLabel = VerifiedMenuLabel(assignmentType);
+        if (menuLabel != null)
         {
-            BattlecraftAssignmentType => GuildBridgeLabel,
-            _ when IsGrandCompany(assignmentType) => GrandCompanyBridgeLabel,
-            _ => null,
-        };
-        if (bridge != null)
-        {
-            var bridged = FindContaining(entries, bridge);
-            if (bridged != null)
+            var menu = FindContaining(entries, menuLabel);
+            if (menu != null)
             {
-                detail = $"matched bridge '{bridge}' while looking for '{assignmentLabel}'.";
-                return bridged.Value.Index;
+                detail = $"matched Addon menu label '{menuLabel}' for assignment '{assignmentLabel}'.";
+                return menu.Value.Index;
             }
         }
 
-        if (IsGrandCompany(assignmentType))
-        {
-            var englishBridge = entries.FirstOrDefault(entry =>
-                entry.Text.Contains("Grand Company", StringComparison.OrdinalIgnoreCase)
-                || entry.Text.Contains("Company Leve", StringComparison.OrdinalIgnoreCase));
-            if (!string.IsNullOrEmpty(englishBridge.Text))
-            {
-                detail = $"matched English grand-company bridge '{englishBridge.Text}'.";
-                return englishBridge.Index;
-            }
-        }
-
-        detail = bridge == null
+        detail = menuLabel == null
             ? $"No menu entry contains the client label '{assignmentLabel}'."
-            : $"No menu entry contains '{assignmentLabel}' or the bridge '{bridge}'.";
+            : $"No menu entry contains '{assignmentLabel}' or the Addon label '{menuLabel}'.";
         return null;
     }
 
@@ -170,11 +165,12 @@ internal static class LeveIssuerSelection
 
     internal static bool IsAcquisitionEntry(string text, IReadOnlyList<string> categoryLabels)
     {
-        if (text.Contains(GrandCompanyBridgeLabel, StringComparison.OrdinalIgnoreCase)
-            || text.Contains(GuildBridgeLabel, StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Grand Company", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Company Leve", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("Battlecraft", StringComparison.OrdinalIgnoreCase))
+        if (text.Contains(BattlecraftMenuLabel, StringComparison.Ordinal)
+            || text.Contains(FieldcraftMenuLabel, StringComparison.Ordinal)
+            || text.Contains(TradecraftMenuLabel, StringComparison.Ordinal)
+            || text.Contains(SupplyMenuLabel, StringComparison.Ordinal)
+            || text.Contains(GrandCompanyBridgeLabel, StringComparison.Ordinal)
+            || text.Contains(GuildBridgeLabel, StringComparison.Ordinal))
             return true;
 
         foreach (var label in categoryLabels)
@@ -185,6 +181,14 @@ internal static class LeveIssuerSelection
 
         return false;
     }
+
+    internal static string? VerifiedMenuLabel(byte assignmentType) => assignmentType switch
+    {
+        BattlecraftAssignmentType => BattlecraftMenuLabel,
+        >= 2 and <= 4 => FieldcraftMenuLabel,
+        >= 5 and <= 12 => TradecraftMenuLabel,
+        _ => null,
+    };
 
     private static MenuEntry? FindContaining(IReadOnlyList<MenuEntry> entries, string needle)
     {

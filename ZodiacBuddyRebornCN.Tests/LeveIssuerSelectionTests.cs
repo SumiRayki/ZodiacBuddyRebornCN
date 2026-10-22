@@ -26,11 +26,10 @@ public class LeveIssuerSelectionTests
     }
 
     [Fact]
-    public void Acquire_UsesGrandCompanyBridgeOnlyWhenTheSpecificLabelIsAbsent()
+    public void Acquire_DoesNotTreatTheIssuerFunctionTitleAsAMenuEntry()
     {
-        var index = LeveIssuerSelection.ChooseAcquire(14, "双蛇党", Entries((0, "军队理符"), (1, "取消")), out var detail);
-        Assert.Equal(0, index);
-        Assert.Contains("军队理符", detail);
+        var index = LeveIssuerSelection.ChooseAcquire(14, "双蛇党", Entries((0, "军队理符发行处"), (1, "取消")), out _);
+        Assert.Null(index);
     }
 
     [Fact]
@@ -41,10 +40,28 @@ public class LeveIssuerSelectionTests
     }
 
     [Fact]
-    public void Acquire_BattlecraftUsesTheClientLabelBeforeTheGuildBridge()
+    public void Acquire_BattlecraftUsesTheAddonMenuLabelRatherThanTheAssignmentName()
     {
-        Assert.Equal(0, LeveIssuerSelection.ChooseAcquire(1, "佣兵作业", Entries((0, "佣兵作业"), (1, "取消")), out _));
-        Assert.Equal(0, LeveIssuerSelection.ChooseAcquire(1, "佣兵作业", Entries((0, "行会理符"), (1, "取消")), out _));
+        var entries = Entries((0, "佣兵任务"), (1, "采集任务"), (2, "制作任务"), (3, "听取说明"), (4, "取消"));
+        var index = LeveIssuerSelection.ChooseAcquire(1, "佣兵作业", entries, out var detail);
+
+        Assert.Equal(0, index);
+        Assert.Contains("佣兵任务", detail);
+        Assert.Null(LeveIssuerSelection.ChooseAcquire(1, "佣兵作业", Entries((0, "行会理符发行处"), (1, "取消")), out _));
+    }
+
+    [Fact]
+    public void Acquire_GrandCompanyMenuKeepsTheCompanyNameInsideTheTaskLabel()
+    {
+        var entries = Entries((0, "黑涡团任务"), (1, "双蛇党任务"), (2, "恒辉队任务"), (3, "筹备任务"), (4, "听取说明"), (5, "取消"));
+        Assert.Equal(1, LeveIssuerSelection.ChooseAcquire(14, "双蛇党", entries, out _));
+    }
+
+    [Fact]
+    public void TurnIn_RefusesTheBattlecraftAddonLabel()
+    {
+        var entries = Entries((0, "佣兵任务"), (1, "采集任务"), (2, "制作任务"), (3, "听取说明"), (4, "取消"));
+        Assert.Null(LeveIssuerSelection.ChooseTurnIn(CategoryLabels, entries, out _));
     }
 
     [Fact]

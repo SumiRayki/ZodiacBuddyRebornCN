@@ -63,7 +63,7 @@ jobs:
         run: |
           $hashLine = Get-Content dist/SHA256SUMS.txt -Raw
           $notes = @"
-          ## 1.0.0.0 测试版
+          ## ${{ github.ref_name }} 测试版
 
           这是 FFXIV-CombatReborn/ZodiacBuddyReborn 标签 7.5.6.1（commit 4913f31ab829c21f6ae5289568f14cd182233bbc）的非官方国服适配。上游没有背书，本仓库也不是官方国服版本。
 
@@ -81,10 +81,11 @@ jobs:
           - 开发机上的 XIVLauncherCN Hooks/dev 已是 15.0.3.9（commit e7efef21c1db9fa975b5fd97a4e3b77246bbec0a）。两份 FFXIVClientStructs.dll 不是同一个文件
 
           ### 已知问题
-          - 尚未在国服实机确认理符接取和交付。请在卫月中打开测试版插件后再安装。
-          - 不能与原版 ZodiacBuddy Reborn 同时启用。启动后约 3 秒内如果检测到原版程序集，本插件会停止文书自动化并让出 /pzodiac 与 /ztarget。
+          - 请在卫月中打开测试版插件后再安装。
+          - 实机已确认能按数据 ID 找到理符发行人。佣兵接取按 Addon「佣兵任务」点选；这次点击本身还没有新的实机记录。交付菜单尚未在实机确认。
+          - 不能与原版 ZodiacBuddy Reborn 同时启用。原版处于已加载状态时，本插件停止文书和理符，并让出 /pzodiac 与 /ztarget。原版关闭后恢复。
           - 不读取、不覆盖原版配置。原版配置文件仍留给原版插件。
-          - 交付菜单没有在数据里找到单独的“交付”标签。出现“报告”时选择该项；否则只在第一项不是接取分类时才选择第一项。无法识别时停止，不改文书进度。
+          - 交付只选择含「报告」的项。该项不存在，或第一项是接取分类时停止，不改文书进度。
 
           ### 回滚
           在卫月中禁用或移除本自定义仓库，然后重新启用原版。已发布的旧测试包保留在对应 Release，可从该 Release 的 zip 安装。
